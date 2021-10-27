@@ -1,0 +1,6 @@
+{
+    "input": ".",
+    "pluginsLocations": ["../Bitfield/bin/Debug/netcoreapp3.1/Kari.Plugins.Bitfield.dll"],
+    "monolithicProject": true,
+    "rootNamespace": "Bitfield.Tests"
+}

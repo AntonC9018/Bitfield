@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- See a note on this in the readme -->
+  <Import Project="../config.props" />
+  <PropertyGroup>
+    <AssemblyName>Kari.Plugins.Bitfield</AssemblyName>
+  </PropertyGroup>
+</Project>
