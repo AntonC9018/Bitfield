@@ -43,17 +43,18 @@ Firstly, you need the source code of Kari somewhere on you computer.
 
 > Also install it as a tool for convenience.
 
-Now look at the file `config.example.props`.
+Now look at the file [`config.example.props`](https://github.com/AntonC9018/Bitfield/blob/master/config.example.props).
 You will need to duplicate it under the name `config.props` and change the path to plugin props to point to where Kari is. 
 The one provided as an example, assumes Kari is next to the folder that contains this repo.
 
 > I will remove this step in the future, when I figure out how to distribute msbuild property files.
 
-Now you can compile the project in `./Bitfield` in any way you like (presumably, with `dotnet build --configuration Release`).
+Now you can compile the project in [`./Bitfield`](https://github.com/AntonC9018/Bitfield/tree/master/Bitfield) in any way you like (presumably, with `dotnet build --configuration Release`).
 
-For an example kari config, see `./Bitfield.Tests/kari.json`.
+For an example kari config, see [`./Bitfield.Tests/kari.json`](https://github.com/AntonC9018/Bitfield/blob/master/Bitfield.Tests/kari.json).
 
 
 ## Testing
 
-Run `dotnet test`.
+1. Generate code in `Bitfield.Tests`, by calling Kari in that folder without arguments.
+2. Run `dotnet test`.
