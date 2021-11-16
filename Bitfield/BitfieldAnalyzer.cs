@@ -34,6 +34,7 @@ namespace Kari.Plugins.Bitfield
             public int numIntIndices;
             public int bitIndexStart;
         }
+        const int INT_BITS_COUNT = 32;
 
         public void AppendBitfieldType(BitfieldInfo info, ref CodeBuilder builder)
         {
@@ -55,10 +56,10 @@ namespace Kari.Plugins.Bitfield
                 // TODO: this can use a more advanced algorithm, aka stuff more things in a single int.
                 // This can use some graph search algo.
                 // TODO: customize overflow behavior.
-                if (property.Length < 32)
+                if (property.Length < INT_BITS_COUNT)
                 {
                     layout[i].numIntIndices = 0;
-                    if (currentBitIndex + property.Length > 32)
+                    if (currentBitIndex + property.Length > INT_BITS_COUNT)
                     {
                         currentIntIndex++;
                         layout[i].intIndexStart = currentIntIndex;
@@ -69,14 +70,14 @@ namespace Kari.Plugins.Bitfield
                         layout[i].bitIndexStart = currentBitIndex;
                         layout[i].intIndexStart = currentIntIndex;
                         currentBitIndex += property.Length;
-                        if (currentBitIndex == 32)
+                        if (currentBitIndex == INT_BITS_COUNT)
                         {
                             currentBitIndex = 0;
                             currentIntIndex++;
                         }
                     }
                 }
-                else if (property.Length == 32)
+                else if (property.Length == INT_BITS_COUNT)
                 {
                     if (currentBitIndex != 0)
                     {
@@ -92,10 +93,10 @@ namespace Kari.Plugins.Bitfield
                 {
                     layout[i].bitIndexStart = currentBitIndex;
                     layout[i].intIndexStart = currentIntIndex;
-                    int numWholeInts = (property.Length + currentBitIndex) / 32;
+                    int numWholeInts = (property.Length + currentBitIndex) / INT_BITS_COUNT;
                     layout[i].numIntIndices = numWholeInts;
                     currentIntIndex += numWholeInts;
-                    currentBitIndex = (property.Length + currentBitIndex) % 32;
+                    currentBitIndex = (property.Length + currentBitIndex) % INT_BITS_COUNT;
                 }
             }
 
@@ -104,38 +105,39 @@ namespace Kari.Plugins.Bitfield
                 numInts++;
 
             for (int i = 0; i < numInts; i++)
-                builder.AppendLine($"private int _int{i};");
+                builder.AppendLine($"private uint _int{i};");
 
-            string GetIntText(int index) => "_int" + layout[index].intIndexStart;
-
-            int GetMask(int inclusiveStartBitIndex, int length)
-            {
-                int num = 0;
-                for (int i = 0; i < length; i++)
+            uint GetMask(int inclusiveStartBitIndex, int length)
+            { 
+                unchecked 
                 {
-                    num <<= 1;
-                    num |= 1;
-                }
-                num <<= inclusiveStartBitIndex;
-                return num;
+                    uint ones = (uint) -1;  
+                    uint num = ones >> (INT_BITS_COUNT - length);
+                    return num << inclusiveStartBitIndex;
+                } 
             }
 
             for (int i = 0; i < info.PropertyInfos.Count; i++)
             {
                 var property = info.PropertyInfos[i];
-                builder.AppendLine($"public {property.FullyQualifiedTypeName} {property.Name}");
-                builder.StartBlock();
-
                 // TODO: Allow types that take up more than 4 bytes
                 Debug.Assert(layout[i].numIntIndices == 0);
 
-                int mask = GetMask(layout[i].bitIndexStart, property.Length);
-                string maskText = "0x" + mask.ToString("x8");
-                string _inti = GetIntText(i);
+                uint mask = GetMask(layout[i].bitIndexStart, property.Length);
+                string maskText = "((uint) 0x" + mask.ToString("x8") + ")";
+                string _inti = "_int" + layout[i].intIndexStart;
+
+                // I provide these values because they might be useful in some cases
+                builder.AppendLine($"public const uint {property.Name}_MASK = {maskText};");
+                // builder.AppendLine($"public const int {property.Name}_LENGTH = {property.Length};");
+                // builder.AppendLine($"public const int {property.Name}_SHIFT_AMOUNT = {layout[i].bitIndexStart};");
+                builder.AppendLine($"public uint {property.Name}_INT {{ get => {_inti}; set => {_inti} = value; }}");
+                builder.AppendLine($"public {property.FullyQualifiedTypeName} {property.Name}");
+                builder.StartBlock();
 
                 builder.AppendLine("get");
                 builder.StartBlock();
-                builder.AppendLine($"int bits = ({_inti} & {maskText}) >> {layout[i].bitIndexStart};");
+                builder.AppendLine($"uint bits = ({_inti} & {maskText}) >> {layout[i].bitIndexStart};");
                 string GetCast()
                 {
                     if (property.Symbol.Type == Symbols.Bool)
@@ -151,11 +153,11 @@ namespace Kari.Plugins.Bitfield
                 string GetCastIntValue()
                 {
                     if (property.Symbol.Type == Symbols.Bool)
-                        return "(value ? 1 : 0)";
-                    return "((int) value)";
+                        return "(value ? 1U : 0U)";
+                    return "((uint) value)";
                 }
                 string intValueTextSet = $"{GetCastIntValue()} - {property.LowerBound}";
-                builder.AppendLine($"int bits = (({intValueTextSet}) << {layout[i].bitIndexStart}) & {maskText};");
+                builder.AppendLine($"uint bits = (({intValueTextSet}) << {layout[i].bitIndexStart}) & {maskText};");
                 builder.AppendLine($"{_inti} = ({_inti} & ~{maskText}) | bits;");
                 builder.EndBlock();
 
@@ -173,6 +175,7 @@ namespace Kari.Plugins.Bitfield
             var builder = new CodeBuilder("    ");
             builder.Append("namespace ");
             builder.Append(project.GeneratedNamespaceName);
+            builder.NewLine();
             builder.StartBlock();
             foreach (var info in _infos)
                 AppendBitfieldType(info, ref builder);
@@ -188,8 +191,10 @@ namespace Kari.Plugins.Bitfield
         public readonly IBitfieldProperty Attribute;
         public readonly string FullyQualifiedTypeName;
 
+        /// Length in terms of the number of bits the field should occupy. 
         public readonly int Length;
         public string Name => Symbol.Name;
+        /// Is not shifted over to the start of the field.
         public readonly int LowerBound;
 
         public BitfieldPropertyInfo(IPropertySymbol symbol, IBitfieldProperty attribute, int length, int lowerBound)
@@ -230,12 +235,10 @@ namespace Kari.Plugins.Bitfield
 
         public bool IsNumericType(ITypeSymbol type)
         {
-            if ((int) type.SpecialType >= (int) SpecialType.System_SByte 
-                || type.SpecialType == SpecialType.System_Enum)
-            {
-                return true;
-            }
-            return false;
+            // The numeric types are in this range
+            return ((int) type.SpecialType >= (int) SpecialType.System_SByte 
+                && (int) type.SpecialType <= (int) SpecialType.System_Decimal)
+                || type.SpecialType == SpecialType.System_Enum;
         }
 
         public bool TryInitializeProperties()
