@@ -90,4 +90,19 @@ namespace Kari.Plugins.Bitfield
             End = end;
         }
     }
+
+    /// <summary>
+    /// The given field will take up the rest of the int it's found in
+    /// TODO: Control min and max.
+    /// I have an even better idea (probably). 
+    /// Inherit all attributes off of a single attribute with all possible things in it.
+    /// Then just query that attribute.
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Property)]
+    [Conditional("CodeGeneration")]
+    public class RestAttribute : Attribute, IBitfieldProperty
+    {
+        public int Minimum = -1;
+        public int Maximum = -1;
+    }
 }

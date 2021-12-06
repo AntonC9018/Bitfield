@@ -59,23 +59,29 @@ namespace Kari.Plugins.Bitfield
                 // TODO: customize overflow behavior.
                 if (property.Length < INT_BITS_COUNT)
                 {
-                    layout[i].numIntIndices = 0;
-                    if (currentBitIndex + property.Length > INT_BITS_COUNT)
+                    layout[i].numIntIndices = 0;                    
+                    if (currentBitIndex + property.Length <= INT_BITS_COUNT)
                     {
-                        currentIntIndex++;
-                        layout[i].intIndexStart = currentIntIndex;
-                        layout[i].bitIndexStart = 0;
-                    }
-                    else
-                    {
+                        {
+                            layout[i].numIntIndices = 0;
+                        }
                         layout[i].bitIndexStart = currentBitIndex;
                         layout[i].intIndexStart = currentIntIndex;
                         currentBitIndex += property.Length;
-                        if (currentBitIndex == INT_BITS_COUNT)
+
+                        // If always takes the rest of the int.
+                        if (property.Length == -1 
+                            || currentBitIndex + property.Length == INT_BITS_COUNT)
                         {
                             currentBitIndex = 0;
                             currentIntIndex++;
                         }
+                    }
+                    else
+                    {
+                        currentIntIndex++;
+                        layout[i].intIndexStart = currentIntIndex;
+                        layout[i].bitIndexStart = 0;
                     }
                 }
                 else if (property.Length == INT_BITS_COUNT)
@@ -192,7 +198,9 @@ namespace Kari.Plugins.Bitfield
         public readonly IBitfieldProperty Attribute;
         public readonly string FullyQualifiedTypeName;
 
-        /// Length in terms of the number of bits the field should occupy. 
+        /// Length in terms of the number of bits the field should occupy.
+        /// TODO: Add minimum and maximum lengths.
+        /// Length of -1 indicates that it will take up the rest of the bits.
         public readonly int Length;
         public string Name => Symbol.Name;
         /// Is not shifted over to the start of the field.
@@ -279,16 +287,6 @@ namespace Kari.Plugins.Bitfield
                     if (property.Type is INamedTypeSymbol enumType && enumType.TypeKind == TypeKind.Enum)
                     {
                         int maxValue = 0;
-                        bool isPowerOfTwo(int value)
-                        {
-                            int count = 0;
-                            while (value > 0)
-                            {
-                                count += value & 1;
-                                value >>= 1;
-                            }
-                            return count > 0;
-                        }
                         foreach (var member in enumType.GetMembers().OfType<IFieldSymbol>())
                         {
                             maxValue = Math.Max((int) member.ConstantValue, maxValue);
@@ -321,6 +319,11 @@ namespace Kari.Plugins.Bitfield
                             length++;
                         }
                     }
+                }
+                else if (property.TryGetAttribute(BitfieldSymbols.RestAttribute, logger, out var restAttribute))
+                {
+                    propertyAttribute = restAttribute;
+                    length = -1;
                 }
                 else
                 {
