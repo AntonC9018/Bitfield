@@ -11,7 +11,7 @@ namespace Kari.Plugins.Bitfield
 {
     // An analyzer will be created per project. 
     // It manages collecting specific information with a single project as input.
-    public class BitfieldAnalyzer : IAnalyzer, ISimpleGenerator
+    public class BitfieldAnalyzer : IAnalyzer, IGenerateCode
     {
         // Keep this public for it to be acessible via the template.
         public readonly List<BitfieldInfo> _infos = new List<BitfieldInfo>();
@@ -174,7 +174,7 @@ namespace Kari.Plugins.Bitfield
             builder.EndBlock();
         }
 
-        public string TransformText(ProjectEnvironmentData project) 
+        public string GenerateCode(ProjectEnvironmentData project) 
         {
             if (_infos.Count == 0) 
                 return null;
