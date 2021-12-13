@@ -1,8 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <Sdk Name="Kari.Plugin.Sdk" Version="0.0.0-g7a60a9bec8" />
+  <Sdk Name="Kari.Plugin.Sdk" Version="0.0.0-g4e6d2e92ed" />
   <PropertyGroup>
-    <RunKariAnnotator>false</RunKariAnnotator>
-    <TargetFramework>net5.0</TargetFramework>
+    <!-- <AddImplicitKariGeneratorCoreReference>true</AddImplicitKariGeneratorCoreReference> -->
+    <!-- <KariPluginSdkVersion>0.0.0-g4e6d2e92ed</KariPluginSdkVersion> -->
+    <!-- <RunKariAnnotator>true</RunKariAnnotator> -->
     <AssemblyName>Kari.Plugins.Bitfield</AssemblyName>
   </PropertyGroup>
 </Project>

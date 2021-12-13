@@ -7,6 +7,12 @@
       "commands": [
         "t4"
       ]
+    },
+    "kari.annotator": {
+      "version": "0.0.0-g4e6d2e92ed",
+      "commands": [
+        "kari-annotator"
+      ]
     }
   }
 }
